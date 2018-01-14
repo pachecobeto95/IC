@@ -1,9 +1,9 @@
-#Undergraduate Research Project 
+# Undergraduate Research Project 
 
 This repository contains all code that I developed during my undergraduate
 research scholarship. 
 
-##Abstract
+## Abstract
 
 Internet of Things consists the idea to connect by a network a diversity of
 "objects" like sensor, actuatos, smartphone and domestic appliance. These
