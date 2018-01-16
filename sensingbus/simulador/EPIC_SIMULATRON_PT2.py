@@ -93,7 +93,7 @@ def worker(thread_name,q):#Queue Accumulation. Wait the "QUEUE_TIME" receiving d
 			compressed = compressdata(datafinal)
 			time.sleep(QUEUE_TIME)
 
-for nr_fog in a:
+for nr_fog in range(FOG_INICIO, FOG_FIM, FOG_STEP):
 	FileTemp = open('./files_test/' + str(FileName) + str(nr_fog) + '.tmp', 'r')
 	size_msg_list = []
 	media_size_msg_list = 0
