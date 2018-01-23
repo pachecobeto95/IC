@@ -26,6 +26,13 @@ class Data(object):
 
 	def conexoes_feitas_cada_fog(self, filenameout):
 
+		'''This function calculates  the distancy between fog and bus at coonnection moment. It uses the arg1 to write into file if the bus was inside of rage of fog's wifi. 
+
+			arg1: a string to be opened as a file 
+
+		'''
+
+
 		for fog_node in fog_nodes_list:
 		 
 			qntd_recebidos = 0
@@ -35,9 +42,9 @@ class Data(object):
 			for bus_node in bus_nodes_list:
 		
 				bus_coord_node = (bus_node[3], bus_node[4])
-				distance = vincenty(bus_coord_node, coord_fog_node).meters #calculate the distancy between fog and bus at momento of connection
+				distance = vincenty(bus_coord_node, coord_fog_node).meters
 		
-				if (distance <= RANGE_FOG):#only write in the file if the bus was inside the range of fog. 
+				if (distance <= RANGE_FOG): 
 			
 
 					FileTemp.write(str(id_fog_node) + " " + str(bus_node[1]) + " " + str(bus_node[2]) + " " + str(bus_coord_node) + "\n")
@@ -46,25 +53,40 @@ class Data(object):
 		
 	
 
-	def acc_data_fogs(self, filenamein, filenameout): #accumulates data of each fog until the number of the fogs installed.
-		i = 1
+	def acc_data_fogs(self, filenamein, filenameout): 
+
+		'''This function accumulates data of each fog until the number of the fogs installed. 
+			
+			arg1:a string to be opened as a file to be read
+
+			arg2:a string to be opened as a file to be written
+		'''
+		installed_fogs = 1
 		for nr_fog in range(self.inicio, self.fim, self.step):
 			FileTemp2 = open('./test_files/' + str(filenameout) + str(nr_fog) + '.tmp', 'a')
-			while i <= fog_node: 
+			while installed_fogs <= fog_node: 
 
-				FileTemp = open('test_files/' + str(filenamein) + str(i) + '.tmp', 'r')
+				FileTemp = open('./test_files/' + str(filenamein) + str(installed_fogs) + '.tmp', 'r')
 				for line in FileTemp.readlines():
 					FileTemp2.write(str(line))
 			
-				i = i + 1
+				installed_fogs = installed_fogs + 1
 				FileTemp.close()
 			FileTemp2.close()	
-	def organizando_dados_nr_conexoes(self, filenamein, filenameout): #order the data from "nr_conexoes_ate" files by the hour of connection.
+	def organizando_dados_nr_conexoes(self, filenamein, filenameout): 
+
+		''' This function orders the data from "nr_conexoes_ate" files by the hour of connection.
+			
+			arg1:a string to be opened as a file to be read
+
+			arg2:a string to be opened as a file to be written
+
+		'''
 
 		for nr_fog in range(self.inicio, self.fim, self.step):
 			ah = []
 			nr_conexoes_ate = open('./test_files/' + str(filenamein) + str(nr_fog) + '.tmp', 'r')
-			arq_dados_organizados = open('test_files/' + str(filenameout) + str(nr_fog) + '.tmp', 'a')	
+			arq_dados_organizados = open('./test_files/' + str(filenameout) + str(nr_fog) + '.tmp', 'w')	
 			for line in nr_conexoes_ate.readlines():
 
 				line_list = line.split()
@@ -81,9 +103,37 @@ class Data(object):
 				arq_dados_organizados.write(str(id_node) + ' ' + str(day) + ' ' + str(hour) + ' ' + str(identification) + ' ' + str(line[4]) + str(line[5]) + '\n')
 			arq_dados_organizados.close()
 			nr_conexoes_ate.close()		
+			ah = []
+			nr_conexoes_ate = open('./test_files/' + str(filenamein) + str(nr_fog) + '.tmp', 'r')
+			arq_dados_organizados = open('./test_files/' + str(filenameout) + str(nr_fog) + '.tmp', 'w')
+			for line in nr_conexoes_ate.readlines():
 
-	def size_msg_entre_fog(self, filenamein, filenameout): #calcula a diferenca do tempo de conexao entre as fogs para saber o tamanho da mensagem para a fog seguinte.
+				line_list = line.split()
+				ah.append(line_list)
 
+			ordem_bus = sorted(ah, key=lambda ah:ah[3])
+
+			for line in ordem_bus:
+				id_node = line[0]
+				day = line[1]
+				hour = line[2]
+				identification = line[3]
+				coord = line[4], line[5]
+				arq_dados_organizados.write(str(id_node) + ' ' + str(day) + ' ' + str(hour) + ' ' + str(identification) + ' ' + str(line[4]) + str(line[5]) + '\n')
+			arq_dados_organizados.close()
+			nr_conexoes_ate.close()		
+
+			
+
+	def size_msg_entre_fog(self, filenamein, filenameout): 
+
+		''' This function calculates the difference of connection between fog to know the size of message to the next fog.
+
+			arg1:a string to be opened as a file to be read
+
+			arg2:a string to be opened as a file to be written
+		
+		'''
 		for nr_fog in range(self.inicio, self.fim, self.step):
 			arq_dados_organizados = open('./test_files/' + str(filenamein) + str(nr_fog) + '.tmp', 'r')
 			tamanho_dados_entre_fogs = open('./test_files/' + str(filenameout) + str(nr_fog) + '.tmp', 'a')
@@ -94,8 +144,8 @@ class Data(object):
 				linetp.append(line_list)
 			while cont < len(linetp):
 				if (linetp[cont][3] == linetp[cont - 1][3]):
-					date1 = int(datetime.datetime.strptime(str(linetp[cont][1]) + ' ' +str(linetp[cont][2]), '%Y-%m-%d %H:%M:%S').strftime("%s"))
-					date2 = int(datetime.datetime.strptime(str(linetp[cont - 1][1]) + ' ' +str(linetp[cont - 1][2]), '%Y-%m-%d %H:%M:%S').strftime("%s"))
+					date1 = float(datetime.datetime.strptime(str(linetp[cont][1]) + ' ' +str(linetp[cont][2]), '%Y-%m-%d %H:%M:%S').strftime("%s"))
+					date2 = float(datetime.datetime.strptime(str(linetp[cont - 1][1]) + ' ' +str(linetp[cont - 1][2]), '%Y-%m-%d %H:%M:%S').strftime("%s"))
 					diffhour = abs(date2 - date1)
 					sizemsg = 185 * diffhour
 		
@@ -116,9 +166,9 @@ FileName2 = 'nr_conexoes_ate_'#file contains all data of the fogs until the numb
 FileName3 = 'dados_organizados_ate_'# storage the data ordered 
 FileName4 = 'size_dados_ate_'#files contains the connections with the size of each message and the time between fogs.
 RANGE_FOG = 300
-FOG_INICIO = 0
-FOG_FIM = 11
-FOG_STEP = 1
+FOG_INICIO = 1
+FOG_FIM = 6101
+FOG_STEP = 100
 if __name__ == "__main__":
 	fog_nodes_list = sql_sbrc2018('Stops')
 	bus_nodes_list = sql_sbrc2018('FilteredPositions')
