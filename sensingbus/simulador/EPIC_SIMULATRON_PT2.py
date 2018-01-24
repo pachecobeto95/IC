@@ -1,9 +1,9 @@
-#Authors:Roberto Pacheco
-#Universidade do Estado do Rio de Janeiro
-#Departamento de Eletronica e Telecomunicacoes (DETEL)
-#Project: SensingBus
-#Subject: Simulate the Comunication between Cloud and Fog (PT2). Simulate the compression.
-
+'''Author:Roberto Pacheco
+Universidade do Estado do Rio de Janeiro
+Departamento de Eletronica e Telecomunicacoes (DETEL)
+Project: SensingBus
+Subject: Simulate the Comunication between Cloud and Fog (PT2). Simulate the compression.
+'''
 import random
 import time
 import datetime
@@ -14,11 +14,12 @@ import threading, Queue
 import sys
 import math
 
+size_msg_list = []
 random.seed(time.time())
 q = Queue.Queue()
 QUEUE_TIME = 30
 FOG_INICIO = 1
-FOG_FIM = 6000
+FOG_FIM = 6101
 FOG_STEP = 100
 FileName = 'size_dados_ate_'
 FileName2 = 'compressed_data_'
@@ -28,8 +29,11 @@ MAX_MEASURES=100
 MEM_LEVEL=9
 STOP_ID = 1
 OFFSET=1
-a = [1, 10]
-class Data:#create message's load
+
+class Data:
+
+	''' This class creates a message's load. '''
+
     def __init__(self):
         self.datetime = datetime.datetime.now().strftime('%d%m%y%H%M%S')
         self.latitude = random.uniform(-22.3,-22.6)
@@ -41,6 +45,8 @@ class Data:#create message's load
         self.data = str(self.datetime) + '00' + ',' + str(self.latitude) + ',' + str(self.longitude) + ',' + str(self.light) + ',' + str(self.temperature) + ',' + str(self.humidity) + ',' + str(self.rain)
 
 def generateData (max_gathering):
+
+	
     dataList = []
 
     for line in range (0, max_gathering):
@@ -49,7 +55,14 @@ def generateData (max_gathering):
     return dataList
 
 
-def createMessage(sensing_node, data):#creates the diccionary to the message
+def createMessage(sensing_node, data):
+	''' This function creates the diccionary to the message.
+
+		arg1: a float to identify the fog node.
+
+		arg2: a list of data to build a complete message.
+	 '''
+
     message = {}
 
     message["node_id"] = sensing_node
@@ -60,7 +73,13 @@ def createMessage(sensing_node, data):#creates the diccionary to the message
     return message
 
 def compressdata(data):
-	#FileTemp = open(str(FileName) + str(nr_fog) + ".tmp", 'a')
+
+	''' This function compresses the data and it writes the data in a file.
+
+		arg1: a list of the data to be compressed
+
+	 '''
+	
 	arq_compressed_data = open("./files_test/" + str(FileName2) + str(nr_fog) + ".tmp", 'a')
 	compressed_data = zlib.compressobj(COMPRESSION_LEVEL, zlib.DEFLATED, WORD_SIZE_BITS, MEM_LEVEL, zlib.Z_HUFFMAN_ONLY)
 	message_text = json.dumps(data)
@@ -76,38 +95,48 @@ def compressdata(data):
 	compression_gain = 100 * (math.log(size_before_compression / sife_after_compression))
 	arq_compressed_data.write(str(compression_ratio) + " " + str(compression_gain) + " " + str(delta_t) + "\n")
 	
-	#return compression_ratio, compression_gain, delta_t
 
 
 
-def worker(thread_name,q):#Queue Accumulation. Wait the "QUEUE_TIME" receiving data to send it later 
+
+def worker(thread_name,q):
+
+	''' This function is a Queue Accumulation. It waits the "QUEUE_TIME" receiving data to send it later.
+
+		arg1: a string tha thread name.
+
+		arg2: a queue to receive the data to be accumulated.
+	'''
 
 	while 1:
 		datafinal = []
-		if not q.empty():
-			while not q.empty():
-				data = q.get()
-				if (data is not None):
-					datafinal.append(data)
+		time_acc = 0
+		while time_acc <= QUEUE_TIME:
+			if not q.empty():
+				while not q.empty():
+					data = q.get()
+					if (data is not None):
+						datafinal.append(data)
 			
-			compressed = compressdata(datafinal)
-			time.sleep(QUEUE_TIME)
+				compressdata(datafinal)
+				time_acc = time_acc + 1
+
+			
 
 for nr_fog in range(FOG_INICIO, FOG_FIM, FOG_STEP):
 	FileTemp = open('./files_test/' + str(FileName) + str(nr_fog) + '.tmp', 'r')
 	size_msg_list = []
 	media_size_msg_list = 0
 	for line in FileTemp.readlines():
-		line_list = line.split()
-		size_msg_list.append(float(line_list[3]))
-		
-	media_size_msg_list = sum(size_msg_list) / len(size_msg_list)
-	t = threading.Thread( target = worker, args=('alt',q))
-	t.daemon = True
-	t.start()
-	data = generateData (int(media_size_msg_list))
-	q.put(createMessage(media_size_msg_list, data))
-t.join()
+		size_msg_list = float(line.split()[3])
+		t = threading.Thread( target = worker, args=('alt',q))
+		t.daemon = True
+		t.start()
+		data = generateData(size_msg_list)
+		q.put(createMessage(size_msg_list, data))	
+
+
+	t.join()
 
 
 
