@@ -22,7 +22,7 @@ RANGE_FOG = 300
 size_msg_list = []
 random.seed(time.time())
 q = Queue.Queue()
-QUEUE_TIME = 30
+QUEUE_TIME = 1800
 FOG_INICIO = 1
 FOG_FIM = 6101
 FOG_STEP = 100
@@ -34,7 +34,7 @@ STOP_ID = 1
 OFFSET=1
 conexoes_bus = []
 conexoes_fog = []
-cont = 1
+
 
 def generateData (max_gathering):
 
@@ -63,29 +63,6 @@ def createMessage(sensing_node, data):
 
 	return message
 
-
-def worker(thread_name,q):
-
-	''' This function is a Queue Accumulation. It waits the "QUEUE_TIME" receiving data to send it later.
-
-		arg1: a string tha thread name.
-
-		arg2: a queue to receive the data to be accumulated.
-	'''
-
-	while 1:
-		datafinal = []
-		time_acc = 0
-		while time_acc <= QUEUE_TIME:
-			if not q.empty():
-				while not q.empty():
-					data = q.get()
-					if (data is not None):
-						datafinal.append(data)
-				fog = Fog(fog_node)
-				fog.compression(datafinal)
-				time_acc = time_acc + 1
-
 class Data(object):
 
 	''' This class creates a message's load. '''
@@ -105,10 +82,13 @@ class Data(object):
 class Fog(object):
 
 	def __init__(self, fog_node):
-		
+	
 		self.fog_node = fog_node.split()
 		self.id = self.fog_node[0]
 		self.coord_fog = (self.fog_node[1], self.fog_node[2])
+		
+		self.conexoes_fog = []
+		self.list_diffhour = []
 		
 	def compression(self, data):
 
@@ -130,70 +110,133 @@ class Fog(object):
 		delta_t = tf - t0
 		compression_ratio = sife_after_compression / size_before_compression
 		compression_gain = 100 * (math.log(size_before_compression / sife_after_compression))
+		return compression_ratio, compression_gain, delta_t
+
+	def procura_conexao_fog(self):
+		FileTemp = open("diffhour.tmp", 'r')
+		conexoes_fog = []
+		cont = 0
+		list_diffhour = []
+		for conexao in FileTemp.readlines():
+
+			line = conexao.split()
+			distance = vincenty(self.coord_fog, (line[4], line[5])).meters
+			
+			if ( distance <= RANGE_FOG ):
+						
+				self.conexoes_fog.append(line)
+				if ( len(self.conexoes_fog) > 1 ):
+		
+					date1 = float(datetime.datetime.strptime(str(self.conexoes_fog[cont][1]) + ' ' +str(self.conexoes_fog[cont][2]), '%Y-%m-%d %H:%M:%S').strftime("%s"))
+					date2 = float(datetime.datetime.strptime(str(self.conexoes_fog[cont - 1][1]) + ' ' +str(self.conexoes_fog[cont - 1][2]), '%Y-%m-%d %H:%M:%S').strftime("%s"))
+					diff_hour = abs(date2 - date1)
+					
+					if ( diff_hour < QUEUE_TIME ):
+						self.list_diffhour.append(diff_hour)
+						
+		
+		if (len(self.list_diffhour) > 0):
+
+			data = generateData(int(sum(self.list_diffhour)))
+			compressed_message = fog_vision.compression(createMessage(int(sum(self.list_diffhour)), data))
+			
+				
+		FileTemp.close()
+		
 
 class Bus(object):
 
 	def __init__(self, bus_node):
+		
 		self.bus_node = bus_node.split()
 		self.day = self.bus_node[1]
 		self.hour = self.bus_node[2]
 		self.id = self.bus_node[3]
 		self.coord_bus = (self.bus_node[4], self.bus_node[5])
 		
-	def a(self):
+		
+	def procurar_ultima_conexao(bus_node):
 
-		print 'oi'
+		if (len(bus_connection) <= 1):
+			global cont
+			cont = 1
+	
+			bus_connection.append(bus_node)
+			
+		
+		if (len (bus_connection) > 1):
+		
+			if (bus_connection[cont] != bus_node):
+			
+				bus_connection.append(bus_node)
+			
+				if (bus_connection[cont][3] == bus_connection[cont - 1][3]):
+
+					last_connection = bus_connection[cont]
+					date1 = float(datetime.datetime.strptime(str(bus_connection[cont][1]) + ' ' +str(bus_connection[cont][2]), '%Y-%m-%d %H:%M:%S').strftime("%s"))
+					date2 = float(datetime.datetime.strptime(str(bus_connection[cont - 1][1]) + ' ' +str(bus_connection[cont - 1][2]), '%Y-%m-%d %H:%M:%S').strftime("%s"))
+					diffhour = abs(date2 - date1)
+
+					if (diffhour != 0):
+
+						FileTemp = open("diffhour2.tmp", 'a')
+						FileTemp.write(str(last_connection[0]) + ' '  + str(last_connection[1]) + ' ' + str(last_connection[2]) + ' ' + str(last_connection[3]) + ' ' + str(last_connection[4]) + ' ' + str(last_connection[5]) + ' '+ str(diffhour)  + '\n')
+						FileTemp.close()
+					
+
+
+				else:
+					global bus_connection
+					bus_connection = []
+					
+				cont = cont + 1
+		
+	
 		
 class Simulador(Bus, Fog):
 
-	def __init__(self, fog_node, bus_node):
+	def __init__(self):
 
 		Bus.__init__(self, bus_node)
 		Fog.__init__(self, fog_node)
 		
 		
 	def conecta(self):
-
-		distance = vincenty(self.coord_fog, self.coord_bus).meters
 		
-		if (distance <= RANGE_FOG):
-			conexoes_bus.append(self.bus_node)
-			conexoes_fog.append(self.fog_node)
+		distance = vincenty(self.coord_fog, self.coord_bus).meters
+		print distance
+	
 
-			#size_msg = procurar_ultima_conexao(conexoes_bus)
-
-			t = threading.Thread( target = worker, args=('alt',q))
-			t.daemon = True
-			t.start()
-			data = generateData(50)
-			q.put(createMessage(50, data))
-			
-
-def procurar_ultima_conexao():
-
-			
-	return size_msg
+	
+	
 		
 if __name__ == "__main__":
 	
 	
 	FileBus = open("./sql_sbrc2018_Buses.tmp", 'r')
-	
-	for bus_node in FileBus.readlines():
-		FileFog = open("./sql_sbrc2018_Stops.tmp", 'r')
-		bus = Bus(bus_node)
-		for fog_node in FileFog.readlines():
-			fog = Fog(fog_node)
-			s = Simulador(fog_node, bus_node)
-			evento = s.conecta()
-			
-	
+	bus_connection = []
+	FileTemp = open("./sql_sbrc2018_Stops.tmp", 'r')
 
+	for fog_node1 in FileTemp.readlines():
+		
+		fog_vision = Fog(fog_node1)
 
-		FileFog.close()
+		for bus_node in FileBus.readlines():
 
-	FileBus.close()
+			FileFog = open("./sql_sbrc2018_Stops.tmp", 'r')
+			bus = Bus(bus_node)
+		
+			for fog_node in FileFog.readlines():
+				fog = Fog(fog_node)
+				s = Simulador()
+				evento = s.conecta()
 
+			FileFog.close()
+
+		fog_vision.procura_conexao_fog()
+		FileBus.close()
+
+		FileTemp.close()
 
 
 
