@@ -109,7 +109,7 @@ class Fog(object):
 	def __init__(self, fog_node):
 		
 		self.fog_node = fog_node.split()
-		print 'a fog analisada' + str(self.fog_node)
+		#print 'a fog analisada' + str(self.fog_node)
 		self.id = self.fog_node[0]
 		self.coord_fog = (self.fog_node[1], self.fog_node[2])
 		
@@ -242,36 +242,27 @@ class Simulador(Bus, Fog):
 		
 		
 	def conecta(self):
-
+		''' calcula a distancia para verificar se ha conexao '''
 		distance = vincenty(self.coord_fog, self.coord_bus).meters
 	
 		if (distance <= RANGE_FOG):
-				
+			''' se houver conexao, vai procurar a ultima vez que o aquele onibus teve um contato com uma fog'''	
 			procurar_ultima_conexao(self.bus_node)
-			
-			'''if (size_msg != None or size_msg != 0):
-				print 'oi'
-				t = threading.Thread( target = worker, args=('alt',q))
-				t.daemon = True
-				t.start()
-				data = generateData(int(size_msg))
-				q.put(createMessage(int(size_msg), data))
-
-			q.join()'''	
+				
 
 def procurar_ultima_conexao(bus_node):
 
 	if (len(bus_connection) <= 1):
 		global cont
 		cont = 1
-	
+		'''armazena os onibus que tiverem conexao '''
 		bus_connection.append(bus_node)
 			
 		
 	if (len (bus_connection) > 1):
 		
 		if (bus_connection[cont] != bus_node):
-			
+			''' armazena os onibus que houver contato '''
 			bus_connection.append(bus_node)
 			
 			if (bus_connection[cont][3] == bus_connection[cont - 1][3]):
@@ -279,10 +270,11 @@ def procurar_ultima_conexao(bus_node):
 				last_connection = bus_connection[cont]
 				date1 = float(datetime.datetime.strptime(str(bus_connection[cont][1]) + ' ' +str(bus_connection[cont][2]), '%Y-%m-%d %H:%M:%S').strftime("%s"))
 				date2 = float(datetime.datetime.strptime(str(bus_connection[cont - 1][1]) + ' ' +str(bus_connection[cont - 1][2]), '%Y-%m-%d %H:%M:%S').strftime("%s"))
+				'''calcula a diferenca de tempo entre ultimas conexoes do onibus '''
 				diffhour = abs(date2 - date1)
 
 				if (diffhour != 0):
-
+					'''escreve no arquivo a diferenca de tempo se a diferenca de tempo nao for zero '''
 					FileTemp = open("diffhour2.tmp", 'a')
 					FileTemp.write(str(last_connection[0]) + ' '  + str(last_connection[1]) + ' ' + str(last_connection[2]) + ' ' + str(last_connection[3]) + ' ' + str(last_connection[4]) + ' ' + str(last_connection[5]) + ' '+ str(diffhour)  + '\n')
 					FileTemp.close()
@@ -299,31 +291,34 @@ def procurar_ultima_conexao(bus_node):
 		
 if __name__ == "__main__":
 	
-	for q in Queue:
-		FileBus = open("./sql_sbrc2018_Buses.tmp", 'r')
-		bus_connection = []
-		FileTemp = open("./sql_sbrc2018_Stops.tmp", 'r')
+	#for q in Queue:
+	FileBus = open("./sql_sbrc2018_Buses.tmp", 'r')
+	bus_connection = []
+	#FileTemp = open("./sql_sbrc2018_Stops.tmp", 'r')
 
-		for fog_node1 in FileTemp.readlines():
+		#for fog_node1 in FileTemp.readlines():
 
-			fog_vision = Fog(fog_node1)
+			#fog_vision = Fog(fog_node1)
 
-		#for bus_node in FileBus.readlines():
-
-			#FileFog = open("./sql_sbrc2018_Stops.tmp", 'r')
-			#bus = Bus(bus_node)
+	for bus_node in FileBus.readlines():
+		'''le cada linha do arquivo como se acompanhando cada onibus pelo seu percurso '''
+		FileFog = open("./sql_sbrc2018_Stops.tmp", 'r')
+		bus = Bus(bus_node)
 		
-			#for fog_node in FileFog.readlines():
-				#fog = Fog(fog_node)
-				#s = Simulador()
-				#evento = s.conecta()
+		for fog_node in FileFog.readlines():
+			''' inicia cada fog do arquivo '''
+			fog = Fog(fog_node)
+			'''inicia o simulador para verificar se ha conexao'''
+			s = Simulador()
+			
+			evento = s.conecta()
 
-			#FileFog.close()
+		FileFog.close()
 
-			fog_vision.procura_conexao_fog(q)
-		FileBus.close()
+			#fog_vision.procura_conexao_fog(q)
+	FileBus.close()
 
-		FileTemp.close()
+	FileTemp.close()
 
 
 
