@@ -1,0 +1,1 @@
+node_id=1&type=data&header=timestamp,lat,lng,light,temperature,humidity&load=11081613534400,-22.3653,-43.45,1000,34.0,57.0
