@@ -1,4 +1,5 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, session
+from flask_session import Session
 from app.api.controllers import api
 from logging.handlers import TimedRotatingFileHandler
 import config, logging
@@ -8,6 +9,8 @@ import config, logging
 app = Flask(__name__, static_folder="static")
 app.config.from_object("config")
 app.config['JSON_AS_ASCII'] = False
+app.config['UPLOAD_FOLDER'] = config.UPLOAD_PATH
+Session(app)
 
 app.register_blueprint(api)
 

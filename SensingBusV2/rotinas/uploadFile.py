@@ -1,17 +1,17 @@
-
 import sys, requests, config, logging
 
 
 fileName = input("Insira o nome do arquivo da Coleta\n")
 if(fileName == ''):
-	fileName = config.SENSING_DATA_FILE
-
+	'''logging.error("Nao foi inserido nenhum arquivo.")
+	sys.exit()'''
+	fileName = 'sensingData.txt'
 
 try:
-	url = config.API_HOST + '/sensingData'
-	file = open(fileName, 'r')
-	header = {'Content-Type' : 'application/x-www-form-urlencoded'}
-	r = requests.post(url, data=file.read(), headers=header)
+	url = config.API_HOST + '/uploadModules'
+	file = {'file': open(fileName,'rb')}
+	values = {'DB': 'photcat', 'OUT': 'csv', 'SHORT': 'short'}
+	r = requests.post(url, files=file, data=values)
 	if (r.status_code == 200 or r.status_code == 201):
 		logging.info("Sensing Data was inserted successfully")
 	else:

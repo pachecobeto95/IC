@@ -18,5 +18,6 @@ app.debug = config.DEBUG
 thread = threading.Thread(target=flushingManager.__sendThread, args=('alt', flushingManager.q))
 thread.daemon = True
 thread.start()
+app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 app.run(host='0.0.0.0', port=config.PORT)
 thread.join()
